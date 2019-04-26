@@ -1,0 +1,5 @@
+Dependancies
+- gsl
+- fftw
+- blas (openblas)
+- lapacke

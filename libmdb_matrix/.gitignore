@@ -1,0 +1,8 @@
+*.d
+*.o
+/*_test
+/TAGS
+/libmdb_matrix_d.so
+/libmdb_matrix_s.so
+/mdb_matrix_d.h
+/mdb_matrix_s.h
