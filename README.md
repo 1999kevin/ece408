@@ -19,6 +19,7 @@ test_import
 
 
 For Mac, we can use Xcode to compile and run it:
+
 1)open Xcode and create a new Xcode project(macOS template: Command Line Tool)
 
 2)add all files into your working directory except test_import.c and delete the original main.c
