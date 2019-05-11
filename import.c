@@ -24,16 +24,15 @@ sparse_rcs *sparse_rcs_create(int m, int n, int N) {
   if (N == 0) {
     A->v = NULL;
     A->j = NULL;
-    A->r = NULL;
   }
   else {
     A->v = malloc(sizeof(float) * N);
     assert(A->v);
 
-    A->j = malloc(sizeof(float) * N);
+    A->j = malloc(sizeof(int) * N);
     assert(A->j);
 
-    A->r = malloc(sizeof(float) * (m+1));
+    A->r = malloc(sizeof(int) * (m+1));
     assert(A->r);
   }
 
@@ -47,166 +46,276 @@ void sparse_rcs_free(sparse_rcs *A) {
   free(A);
 }
 
+sparse_rcs *sparse_rcs_import(const char *filename) {
+	FILE *fid;
+	sparse_rcs *A = NULL;
+	int m, n, N;
+
+	assert(filename);
+
+	fid = fopen(filename, "r");
+	assert(fid);
+
+	/* Read csv */
+	char first_line[100];
+	char *m_c, *n_c, *N_c;
+	char *line;
+	char *p1;
+	int len;
+
+	char *p_end;
+	char *data_line;
+
+	char tmp[25];
+	int i;
+
+	fgets(first_line, 100, fid);
+	line = (char *)first_line;
+
+	for (int i = 0; i < 2; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		switch (i) {
+		case 0:
+			N_c = (char *)malloc(len + 1);
+			strncpy(N_c, line, len);
+			N_c[len] = '\0';
+			break;
+		case 1:
+			m_c = (char *)malloc(len + 1);
+			strncpy(m_c, line, len);
+			m_c[len] = '\0';
+			break;
+		}
+		line = p1 + 1;
+	}
+
+	n_c = (char *)malloc(strlen(line));
+	strncpy(n_c, line, strlen(line));
+
+	N = (int)strtof(N_c, &p_end);
+	m = (int)strtof(m_c, &p_end);
+	n = (int)strtof(n_c, &p_end);
+
+	A = sparse_rcs_create(m, n, N);
+
+	/* Data vector */
+	data_line = (char *)malloc(25 * N);
+	fgets(data_line, 25 * N, fid);
+
+	line = data_line;
+	for (i = 0; i < N - 1; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->v)[i] = strtof(tmp, &p_end);
+	}
+	(A->v)[i] = strtof(line, &p_end);
+
+	/* Col vector */
+	fgets(data_line, 25 * N, fid);
+
+	line = data_line;
+	for (i = 0; i < N - 1; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->j)[i] = (int)strtof(tmp, &p_end);
+	}
+	(A->j)[i] = (int)strtof(line, &p_end);
+
+	/* PTR */
+	fgets(data_line, 25 * (m+1), fid);
+
+	line = data_line;
+	for (i = 0; i < m; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->r)[i] = (int)strtof(tmp, &p_end);
+	}
+	(A->r)[i] = (int)strtof(line, &p_end);
+
+	free(N_c);
+	free(m_c);
+	free(n_c);
+	free(data_line);
+
+	fclose(fid);
+
+	return A;
+}
+
 sparse_coo *sparse_coo_create(int m, int n, int N) {
-  sparse_coo *A;
+	sparse_coo *A;
 
-  assert(m >= 0);
-  assert(n >= 0);
-  assert(N >= 0);
+	assert(m >= 0);
+	assert(n >= 0);
+	assert(N >= 0);
 
-  A = malloc(sizeof(sparse_coo));
-  assert(A);
+	A = malloc(sizeof(sparse_coo));
+	assert(A);
 
-  A->m = m;
-  A->n = n;
-  A->N = N;
+	A->m = m;
+	A->n = n;
+	A->N = N;
 
-  if (N == 0) {
-    A->v = NULL;
-    A->j = NULL;
-    A->i = NULL;
-  }
-  else {
-    A->v = malloc(sizeof(float) * N);
-    assert(A->v);
+	if (N == 0) {
+		A->v = NULL;
+		A->j = NULL;
+		A->i = NULL;
+	}
+	else {
+		A->v = malloc(sizeof(float) * N);
+		assert(A->v);
 
-    A->j = malloc(sizeof(float) * N);
-    assert(A->j);
+		A->j = malloc(sizeof(int) * N);
+		assert(A->j);
 
-    A->i = malloc(sizeof(float) * N);
-    assert(A->i);
-  }
+		A->i = malloc(sizeof(int) * N);
+		assert(A->i);
+	}
 
-  return A;
+	return A;
 }
 
 void sparse_coo_free(sparse_coo *A)
 {
-  free(A->v);
-  free(A->i);
-  free(A->j);
-  free(A);
+	free(A->v);
+	free(A->i);
+	free(A->j);
+	free(A);
 }
 
-sparse_coo *sparse_coo_import(const char *filename){
-  FILE *fid;
-  sparse_coo *A = NULL;
-  int m, n, N;
+sparse_coo *sparse_coo_import(const char *filename) {
+	FILE *fid;
+	sparse_coo *A = NULL;
+	int m, n, N;
 
-  assert(filename);
+	assert(filename);
 
-  fid = fopen(filename, "r");
-  assert(fid);
+	fid = fopen(filename, "r");
+	assert(fid);
 
-  /* Read csv */
-  char first_line[100];
-  char *m_c, *n_c, *N_c;
-  char *line;
-  char *p1;
-  int len;
+	/* Read csv */
+	char first_line[100];
+	char *m_c, *n_c, *N_c;
+	char *line;
+	char *p1;
+	int len;
 
-  char *p_end;
-  char *data_line;
+	char *p_end;
+	char *data_line;
 
-  char tmp[20];
-  int i;
+	char tmp[22];
+	int i;
 
-  fgets(first_line, 100, fid);
-  line = (char *)first_line;
+	fgets(first_line, 100, fid);
+	line = (char *)first_line;
 
-  for (int i = 0; i < 2; i++) {
-    p1 = strchr(line,',');
-    len = strlen(line) - strlen(p1);
-    switch (i) {
-      case 0:
-        N_c = (char *) malloc(len+1);
-        strncpy(N_c, line, len);
-        N_c[len] = '\0';
-        break;
-      case 1:
-        m_c = (char *) malloc(len+1);
-        strncpy(m_c, line, len);
-        m_c[len] = '\0';
-        break;
-    }
-    line = p1 + 1;
-  }
+	for (int i = 0; i < 2; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		switch (i) {
+		case 0:
+			N_c = (char *)malloc(len + 1);
+			strncpy(N_c, line, len);
+			N_c[len] = '\0';
+			break;
+		case 1:
+			m_c = (char *)malloc(len + 1);
+			strncpy(m_c, line, len);
+			m_c[len] = '\0';
+			break;
+		}
+		line = p1 + 1;
+	}
 
-  n_c = (char *) malloc(strlen(line));
-  strncpy(n_c, line, strlen(line));
+	n_c = (char *)malloc(strlen(line));
+	strncpy(n_c, line, strlen(line));
 
-  N = (int) strtof(N_c, &p_end);
-  //printf("N: %d\n", N);
-  m = (int) strtof(m_c, &p_end);
-  //printf("m: %d\n", m);
-  n = (int) strtof(n_c, &p_end);
-  //printf("n: %d\n", n);
+	N = (int)strtof(N_c, &p_end);
+	//printf("N: %d\n", N);
+	m = (int)strtof(m_c, &p_end);
+	//printf("m: %d\n", m);
+	n = (int)strtof(n_c, &p_end);
+	//printf("n: %d\n", n);
 
-  A = sparse_coo_create(m, n, N);
+	A = sparse_coo_create(m, n, N);
+	//printf("N: %d, m: %d, n: %d\n", A->N, A->m, A->n);
 
-  /* Data vector */
-  data_line = (char *) malloc(21*N);
-  fgets(data_line, 21*N, fid);
+	/* Data vector */
+	data_line = (char *)malloc(22 * N);
+	fgets(data_line, 21 * N, fid);
+	//printf("%s\n", data_line);
 
-  line = data_line;
-  for (i = 0; i < N-1; i++) {
-    p1 = strchr(line,',');
-    len = strlen(line) - strlen(p1);
-    strncpy(tmp, line, len);
-    tmp[len] = '\0';
-    line = p1 + 1;
-    (A->v)[i] = strtof(tmp, &p_end);
-  }
-  (A->v)[i] = strtof(line, &p_end);
-  /*printf("Data vector:\n" );
-  for (i = 0; i < N; i++)
-    printf("%f ", (A->v)[i]);
-  printf("\n");*/
+	line = data_line;
+	for (i = 0; i < N - 1; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		//printf("i: %d, len: %d\n", i, len);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->v)[i] = strtof(tmp, &p_end);
+		//printf("i: %d, %f\n", i, (A->v)[i]);
+	}
+	(A->v)[i] = strtof(line, &p_end);
+	/*printf("Data vector:\n");
+	for (i = 0; i < N; i++)
+		printf("%f ", (A->v)[i]);
+	printf("\n");*/
 
-  /* Col vector */
-  fgets(data_line, 21*N, fid);
+	/* Col vector */
+	fgets(data_line, 22 * N, fid);
 
-  line = data_line;
-  for (i = 0; i < N-1; i++) {
-    p1 = strchr(line,',');
-    len = strlen(line) - strlen(p1);
-    strncpy(tmp, line, len);
-    tmp[len] = '\0';
-    line = p1 + 1;
-    (A->j)[i] = (int) strtof(tmp, &p_end);
-  }
-  (A->j)[i] = (int) strtof(line, &p_end);
-  /*printf("Col vector:\n" );
-  for (i = 0; i < N; i++)
-    printf("%d ", (A->j)[i]);
-  printf("\n");*/
+	line = data_line;
+	for (i = 0; i < N - 1; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->j)[i] = (int)strtof(tmp, &p_end);
+	}
+	(A->j)[i] = (int)strtof(line, &p_end);
+	/*printf("Col vector:\n" );
+	for (i = 0; i < N; i++)
+	printf("%d ", (A->j)[i]);
+	printf("\n");*/
 
-  /* Row vector */
-  fgets(data_line, 21*N, fid);
+	/* Row vector */
+	fgets(data_line, 21 * N, fid);
 
-  line = data_line;
-  for (i = 0; i < N-1; i++) {
-    p1 = strchr(line,',');
-    len = strlen(line) - strlen(p1);
-    strncpy(tmp, line, len);
-    tmp[len] = '\0';
-    line = p1 + 1;
-    (A->i)[i] = (int) strtof(tmp, &p_end);
-  }
-  (A->i)[i] = (int) strtof(line, &p_end);
-  /*printf("Row vector:\n" );
-  for (i = 0; i < N; i++)
-    printf("%d ", (A->i)[i]);
-  printf("\n");*/
+	line = data_line;
+	for (i = 0; i < N - 1; i++) {
+		p1 = strchr(line, ',');
+		len = strlen(line) - strlen(p1);
+		strncpy(tmp, line, len);
+		tmp[len] = '\0';
+		line = p1 + 1;
+		(A->i)[i] = (int)strtof(tmp, &p_end);
+	}
+	(A->i)[i] = (int)strtof(line, &p_end);
+	/*printf("Row vector:\n" );
+	for (i = 0; i < N; i++)
+	printf("%d ", (A->i)[i]);
+	printf("\n");*/
 
-  free(N_c);
-  free(m_c);
-  free(n_c);
-  free(data_line);
+	free(N_c);
+	free(m_c);
+	free(n_c);
+	free(data_line);
 
-  fclose(fid);
+	fclose(fid);
 
-  return A;
+	return A;
 }
 
 full_r *full_r_create(int m, int n) {
@@ -259,7 +368,7 @@ full_r *full_r_import(const char *filename) {
   char *p_end;
   char *data_line;
 
-  char tmp[20];
+  char tmp[25];
   int row, i;
 
   fgets(first_line, 100, fid);
@@ -277,16 +386,18 @@ full_r *full_r_import(const char *filename) {
   n = (int) strtof(line, &p_end);
 
   A = full_r_create(m, n);
+  //printf("m: %d, n: %d\n", A->m, A->n);
 
-  data_line = (char *) malloc(21*n);
-  
+  data_line = (char *) malloc(25*n);
+
   //printf("Data Matrix:\n");
   for (row = 0; row < m; row++) {
-    fgets(data_line, 21 * n, fid);
+    fgets(data_line, 25 * n, fid);
     line = data_line;
     for (i = 0; i < n-1; i++) {
       p1 = strchr(line,',');
       len = strlen(line) - strlen(p1);
+	  //printf("i: %d, len: %d\n", i, len);
       strncpy(tmp, line, len);
       tmp[len] = '\0';
       line = p1 + 1;
@@ -348,7 +459,7 @@ toeplitz *toeplitz_import(const char *filename) {
   char *p_end;
   char *data_line;
 
-  char tmp[20];
+  char tmp[22];
   int i;
 
   fgets(first_line, 100, fid);
@@ -374,8 +485,8 @@ toeplitz *toeplitz_import(const char *filename) {
 
   A = toeplitz_create(N, n);
   /* Data vector */
-  data_line = (char *) malloc(21*n);
-  fgets(data_line, 21*n, fid);
+  data_line = (char *) malloc(22*n);
+  fgets(data_line, 22*n, fid);
 
   line = data_line;
   for (i = 0; i < n-1; i++) {

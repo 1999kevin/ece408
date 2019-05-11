@@ -12,4 +12,5 @@ int matrix_find(const sparse_coo *A, int row, int col, float *e);
 sparse_coo * matrix_m3(const sparse_coo *A, const sparse_coo *B, int L_1);
 sparse_coo * toe_full_elem(const float *row0, const float **A, int n);
 void matrix_trans(const sparse_coo *A, sparse_rcs *B);
+sparse_rcs* kernel_full_to_csr(const float** A, int width, int height);
 #endif

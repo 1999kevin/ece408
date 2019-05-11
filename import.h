@@ -8,6 +8,8 @@ sparse_rcs *sparse_rcs_create(int m, int n, int N);
 
 void sparse_rcs_free(sparse_rcs *A);
 
+sparse_rcs *sparse_rcs_import(const char *filename);
+
 sparse_coo *sparse_coo_create(int m, int n, int N);
 
 void sparse_coo_free(sparse_coo *A);

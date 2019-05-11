@@ -28,9 +28,9 @@ int A_row, int A_col, int B_row, int B_col)
 	if (A_row != B_col || A_col != B_row) {
 		return;
 	}
-	
+
 	int i, j, k;
-	
+
 	for (i = 0; i < A_row; i++)
 	{
 		for (j = 0; j < B_col; j++)
@@ -54,7 +54,7 @@ int matrix_find(const sparse_coo *A, int row, int col, float *e)
 			return 0;
 		}
 	}
-	
+
 	return -1;
 }
 
@@ -76,7 +76,7 @@ sparse_coo * matrix_m3(const sparse_coo *A, const sparse_coo *B, int L_1)
 	i_tmp = (int *) malloc(sizeof(int)*elem_max);
 	j_tmp = (int *) malloc(sizeof(int)*elem_max);
 	v_tmp = (float *) malloc(sizeof(float)*elem_max);
-	
+
 	p = 0;
 	for (i = 0; i < A->m; i++) {			// loop C-row
 		for (j = 0; j < B->n; j++) {		// loop C-col
@@ -90,7 +90,7 @@ sparse_coo * matrix_m3(const sparse_coo *A, const sparse_coo *B, int L_1)
 				}
 				s = s + m*t;
 			}
-			
+
 			if (s != 0) {		// C[i,j]!=0
 				i_tmp[p] = i;
 				j_tmp[p] = j;
@@ -156,7 +156,7 @@ void matrix_trans(const sparse_coo *A, sparse_rcs *B) {
 		B->v[p] = A->v[p];
 		B->j[p] = A->j[p];
 	}
-	
+
 	int t = 0; // counter for # nonzero data
 	p = 0;
 	while (p < B->m) {
@@ -176,4 +176,39 @@ void matrix_trans(const sparse_coo *A, sparse_rcs *B) {
 		}
 	}
 	B->r[p] = B->N;
+}
+
+sparse_rcs* kernel_full_to_csr(const float** A, int width, int height)
+{
+	int i, j, p, k;
+	p = 0;
+	//calculate N
+	for (i = 0; i<height; i++) {
+		for (j = 0; j<width; j++) {
+			if (A[i][j] != 0) {
+				//printf("%f i:%d j:%d\n",A[i][j],i,j);
+				p++;
+			}
+		}
+	}
+	//printf("wotaicaile1\n");
+	//create B
+	sparse_rcs* B = sparse_rcs_create(height, width, p);
+	//determine v,j,r
+	p = 0;
+	//initialize
+	B->r[0] = 0;
+	for (i = 0; i<height; i++) {
+		for (j = 0; j<width; j++) {
+			if (A[i][j] != 0 && p<B->N) {
+				B->v[p] = A[i][j];
+				B->j[p] = j;
+
+				p++;
+			}
+		}
+
+		B->r[i + 1] = p;
+	}
+	return B;
 }
